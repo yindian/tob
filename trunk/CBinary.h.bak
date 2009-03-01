@@ -1,0 +1,49 @@
+///////////////////////////////////////////////////////////////////////////////
+//	CBinary.h
+///////////////////////////////////////////////////////////////////////////////
+#ifndef CBINARY_INCLUDED
+#define CBINARY_INCLUDED
+#include <memory.h>
+typedef unsigned char	U8;
+typedef unsigned short	U16;
+typedef unsigned int	U32;
+///////////////////////////////////////////////////////////////////////////////
+class CBinary
+{
+public:
+	virtual ~CBinary() {};
+	virtual void Reset()=0;
+	virtual U32 GetSize()=0;
+	virtual bool SetSize(U32 size)=0;
+	virtual bool Read(U32 pos,U8 *dst,U32 dstlen)=0;
+	virtual bool Write(U32 pos,const U8 *src,U32 srclen)=0;
+	virtual bool Append(const U8 *src,U32 srclen)=0;
+};
+///////////////////////////////////////////////////////////////////////////////
+class CBinaryMemory : public CBinary // NOT object-thread-safe
+{
+public:
+	enum {BLOCKSIZE=65536};
+private:
+	struct SBlock
+	{
+		U8 m_data[BLOCKSIZE];
+		SBlock *m_next;
+		SBlock() {memset(m_data,0,BLOCKSIZE);m_next=0;}
+	};
+	SBlock *m_head;
+	SBlock *m_tail;
+	U32 m_allsize;
+public:
+	CBinaryMemory():m_head(0),m_tail(0),m_allsize(0) {}
+	~CBinaryMemory() {Reset();}
+	void Reset() {SetSize(0);}
+	U32 GetSize() {return m_allsize;}
+	bool SetSize(U32 size);
+	bool Read(U32 pos,U8 *dst,U32 dstlen);
+	bool Write(U32 pos,const U8 *src,U32 srclen);
+	bool Append(const U8 *src,U32 srclen);
+};
+///////////////////////////////////////////////////////////////////////////////
+#endif
+///////////////////////////////////////////////////////////////////////////////
