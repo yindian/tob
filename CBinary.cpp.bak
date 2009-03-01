@@ -1,0 +1,121 @@
+///////////////////////////////////////////////////////////////////////////////
+//	CBinary.cpp
+///////////////////////////////////////////////////////////////////////////////
+#include "CBinary.h"
+///////////////////////////////////////////////////////////////////////////////
+bool CBinaryMemory::SetSize(U32 size)
+{
+	if(size<m_allsize)
+	{
+		m_allsize=size;
+		SBlock *p=m_head;
+		if(size==0)
+		{
+			m_head=m_tail=0;
+		}
+		else
+		{
+			while(size>BLOCKSIZE)
+			{
+				p=p->m_next;
+				size-=BLOCKSIZE;
+			}
+			m_tail=p;
+			p=p->m_next;
+			m_tail->m_next=0;
+		}
+		while(p)
+		{
+			SBlock *t=p;
+			p=p->m_next;
+			delete t;
+		}
+	}
+	else if(size>m_allsize)
+	{
+		if(!m_head)
+		{
+			SBlock *t=new SBlock;
+			if(!t) return false;
+			m_head=m_tail=t;
+		}
+		SBlock *p=m_head;
+		while(size>BLOCKSIZE)
+		{
+			if(!p->m_next)
+			{
+				p->m_next=new SBlock;
+				if(!p->m_next) return false;
+			}
+			m_tail=p;
+			p=p->m_next;
+			m_allsize+=BLOCKSIZE;
+			size-=BLOCKSIZE;
+		}
+		m_allsize+=size;
+	}
+	return true;
+}
+///////////////////////////////////////////////////////////////////////////////
+bool CBinaryMemory::Read(U32 pos,U8 *dst,U32 dstlen)
+{
+	if(pos+dstlen>m_allsize) return false;
+	SBlock *p=m_head;
+	while(pos>=BLOCKSIZE)
+	{ 
+		p=p->m_next;
+		pos-=BLOCKSIZE;
+	}
+	U32 len=BLOCKSIZE-pos;
+	if(len>dstlen) len=dstlen;
+	memcpy(dst,p->m_data+pos,len);
+	while(dstlen-=len)
+	{
+		dst+=len;
+		p=p->m_next;
+		len=(dstlen>BLOCKSIZE ? BLOCKSIZE : dstlen);
+		memcpy(dst,p->m_data,len);
+	}
+	return true;
+}
+///////////////////////////////////////////////////////////////////////////////
+bool CBinaryMemory::Write(U32 pos,const U8 *src,U32 srclen)
+{
+	if(pos+srclen>m_allsize) if(!SetSize(pos+srclen)) return false;
+	SBlock *p=m_head;
+	while(pos>=BLOCKSIZE)
+	{
+		p=p->m_next;
+		pos-=BLOCKSIZE;
+	}
+	U32 len=BLOCKSIZE-pos;
+	if(len>srclen) len=srclen;
+	memcpy(p->m_data+pos,src,len);
+	while(srclen-=len)
+	{
+		src+=len;
+		p=p->m_next;
+		len=(srclen>BLOCKSIZE ? BLOCKSIZE : srclen);
+		memcpy(p->m_data,src,len);
+	}
+	return true;
+}
+///////////////////////////////////////////////////////////////////////////////
+bool CBinaryMemory::Append(const U8 *src,U32 srclen)
+{
+	if(!SetSize(m_allsize+srclen)) return false;
+	SBlock *p=m_tail;
+	U32 pos=m_allsize%BLOCKSIZE;
+	U32 len=BLOCKSIZE-pos;
+	if(len>srclen) len=srclen;
+	memcpy(p->m_data+pos,src,len);
+	while(srclen-=len)
+	{
+		src+=len;
+		p=p->m_next;
+		len=(srclen>BLOCKSIZE ? BLOCKSIZE : srclen);
+		memcpy(p->m_data,src,len);
+	}
+	return true;
+}
+///////////////////////////////////////////////////////////////////////////////

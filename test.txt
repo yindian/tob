@@ -1,0 +1,17 @@
+@_FILE  "test.bin"
+@_DEFI  4
+@_DEFF  4
+@nop    [00]
+@call   [ca 11]
+@str    "str"
+@num    12
+@pi     3.14
+call(p001 - num + 123 - @:s, pi:d)
+        "AAA"
+        'abc def\n'
+        nop
+#p001
+        [12 cd 00]
+; 编译以上脚本输出为:
+; CA 11 7C 00 1F 85 EB 51 B8 1E 09 40 41 41 41 00
+; 61 62 63 20 64 65 66 0A 00 12 CD 00
